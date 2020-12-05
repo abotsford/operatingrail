@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>AUS Mine vs Railroad</title>
+
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+        integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+        crossorigin=""/>
+
+        <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+        integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+        crossorigin=""></script>
+
+		<script type="text/javascript" src="opmines.js"></script>
+		<script type="text/javascript" src="rail.js"></script>
+		<script type="text/javascript" src="opmines5.js"></script>
+	
+		
+        <style type="text/css">
+        
+        html, body { margin: 0; padding: 0; height: 100%; }
+        #map { min-height: 100%; }
+		
+		.legend {
+          padding: 6px 8px;
+          line-height: 18px;
+          background: rgba(255,255,255,0.9);
+          box-shadow: 0 0 15px rgba(0,0,0,0.2);
+          border-radius: 5px;
+        }
+		
+		.legend span {
+			position: relative;
+			bottom: 3px;
+		}
+		
+		.legend i {
+          width: 18px;
+          height: 18px;
+          float: left;
+          margin-right: 8px;
+          opacity: 0.7;
+        }
+		
+		.legend .line{
+			width: 10px;
+			height: 5px;
+			border-bottom: 11px;
+			
+		}
+		
+		.legend .circle {
+			border-radius: 50%;
+			width: 10px;
+			height: 10px;
+			margin-bottom: 8px;
+		}
+
+        .title {
+          padding: 6px 8px;
+          font-family: 'Suez One';font-size: 20px;
+          background: white;
+          background: rgba(255,255,255,0.8);
+          box-shadow: 0 0 15px rgba(0,0,0,0.2);
+          border-radius: 5px;
+        }
+
+                    </style>
+    </head>
+
+    <body>
+        <div id="map" style="height: 400px"></div>
+
+        <script type="text/javascript">
+
+          var map = L.map('map', {
+              center: [-30, 135.96],
+              zoom: 4
+          });
+		  
+		var imagery = L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+			attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
+			maxZoom: 15,
+			minZoom: 3,
+			id: 'mapbox.satellite',
+			accessToken: 'pk.eyJ1IjoibHlyYWQxNyIsImEiOiJja2VkZDI3aHMwcmJuMzZvMTUyeDYyMWd4In0.wLLxzxynKUMwsVJ-kCmDGA'
+		}).addTo(map);
+
+		//ADD TITLE TO MAP
+          var title = L.control({position: 'topright'}); // position of the title
+          title.onAdd = function (map) {
+              this._div = L.DomUtil.create('div', 'title'); // create a div with a class "title"
+              this._div.innerHTML = "<h3>Mining Operations<br>in Relation to Rail</h3>";  // Title text, may use html to customize
+              return this._div;
+          };
+            title.addTo(map);
+			
+		//ADD MINE SYMBOLOGY	
+		var minepointcolor = {
+			radius: 4,
+			fillColor: "#ff0000",
+			color: "#000",
+			weight: 1,
+			opacity: 1,
+			fillOpacity: 0.8
+			};
+		
+		var railcolor = {
+			"color": "#000000",
+			"weight": 2,
+			"opacity": 1
+			};
+		
+		var rail = L.geoJson(rail, {
+			style: railcolor
+		}).addTo(map);
+		
+		var opmines = L.geoJson(op_mines, {
+			pointToLayer: function (feature, latlng) {
+				return L.circleMarker(latlng, minepointcolor);
+			}
+		}).bindPopup(function (layer){
+        return layer.feature.properties.NAME
+       + '<p style="color:darkgreen">' + layer.feature.properties.COMMOD_NAM;
+     }).addTo(map);
+
+	//Mines 5 miles from rail
+		var mine5pointcolor = {
+			radius: 4,
+			fillColor: "blue",
+			color: "#000",
+			weight: 1,
+			opacity: 1,
+			fillOpacity: 0.8
+		};
+
+		var mine5 = L.geoJson(op_mines5, {
+			pointToLayer: function (feature, latlng) {
+ 				return L.circleMarker(latlng, mine5pointcolor);}
+				}).bindPopup(function (layer){
+				return layer.feature.properties.NAME
+				+ '<p style="color:darkgreen">' + layer.feature.properties.COMMOD_NAM;
+      }).addTo(map);
+	  
+	  //ADD LEGEND
+	  var opmineslegend = L.control({position: 'bottomright'});
+	  
+	  opmineslegend.onAdd = function (map) {
+		var div = L.DomUtil.create('div', 'legend');
+		div.innerHTML = '<b><h2>Legend</h2></b>';
+		div.innerHTML += '<i class="circle" style="background: #ff0000"></i><span>Operating Mines</span><br>';
+		div.innerHTML += '<i class="circle" style="background: #0000FF"></i><span>Mines within 5mi of rail</span><br>';
+		div.innerHTML += '<i class="line" style="background: #000000"></i><span>Rail</span>';
+		return div;
+	};
+	
+		opmineslegend.addTo(map);
+		
+		
+
+		//ADDING LAYER CONTROLS--- LEGEND GOES BEFORE this
+		
+		var basemaps = {
+			"Satellite Imagery": imagery };
+
+		var overlaymaps = {
+			"Operating Mines": opmines,
+			"Mines 5mi from rail": mine5 };
+
+		L.control.layers(basemaps, overlaymaps).addTo(map);
+		
+
+		
+        </script>
+         
+   </body>
+</html>
